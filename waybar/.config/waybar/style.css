@@ -2,9 +2,9 @@
 
 * {
     font-family: 'CaskaydiaMono Nerd Font';
-    font-size: 16px;
+    font-size: 14px;
     min-height: 0;
-    font-weight: bold;
+    /* font-weight: bold; */
 }
 
 window#waybar {
@@ -14,12 +14,13 @@ window#waybar {
     transition-property: background-color;
     transition-duration: 0.1s;
     border-bottom: 1px solid @overlay1;
+    
 }
 
 #window {
     margin: 8px;
-    padding-left: 8;
-    padding-right: 8;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 button {
@@ -36,6 +37,8 @@ button:hover {
 
 #workspaces button {
     padding: 0 4px;
+    margin: 0 1.5px;
+    min-width: 9px;
 }
 
 #workspaces button.focused {
@@ -111,17 +114,29 @@ button:hover {
 
 /* If workspaces is the leftmost module, omit left margin */
 .modules-left>widget:first-child>#workspaces {
-    margin-left: 0;
+
+    padding-left: 15px;
+}
+.modules-left > *:first-child {
+    margin-left: 12px;
 }
 
 /* If workspaces is the rightmost module, omit right margin */
 .modules-right>widget:last-child>#workspaces {
-    margin-right: 0;
+    margin-right: 0px;
 }
+
 
 #custom-vpn {
     color: @lavender;
     border-radius: 15px;
     padding-left: 6px;
     padding-right: 6px;
+}
+
+/* Add breathing room between the screen edge and the first icon (omarchy) */
+#custom-omarchy {
+    margin-left: 12px;
+    margin-right: 8px; 
+    padding-left: 4px;
 }
