@@ -53,6 +53,7 @@ fi
 # ----------------------
 if [ -d "$DOTFILES_DIR" ]; then
     log "Dotfiles directory already exists at $DOTFILES_DIR"
+<<<<<<< HEAD
     read -rp "Do you want to rename differing files with .bak and update with new repository? [y/N] " confirm
     if [[ $confirm =~ ^[yY]$ ]]; then
         log "Cloning dotfiles repository to a temporary directory..."
@@ -95,6 +96,23 @@ else
     cd "$DOTFILES_DIR"
 fi
 
+=======
+    read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm
+    if [[ $confirm =~ ^[yY]$ ]]; then
+        log "Deleting existing dotfiles folder..."
+        rm -rf "$DOTFILES_DIR"
+    else
+        error "Aborting. Please remove or rename $DOTFILES_DIR manually."
+        exit 1
+    fi
+fi
+
+log "Cloning dotfiles repository..."
+git clone "$REPO_URL" "$DOTFILES_DIR"
+cd "$DOTFILES_DIR"
+
+
+>>>>>>> 8945c85 (delete old dotfile before git)
 # ----------------------
 # Helper functions
 # ----------------------
