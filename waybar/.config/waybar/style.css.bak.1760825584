@@ -29,14 +29,14 @@ mpris.empty {
 }
 
 #workspaces button {
-all: initial;
-padding: 0 6px;
-margin: 0 1.5px;
-min-width: 9px;
+  all: initial;
+  padding: 0 6px;
+  margin: 0 1.5px;
+  min-width: 9px;
 }
 
 #workspaces button.empty {
-opacity: 0.5;
+  opacity: 0.5;
 }
 
 #backlight, #custom-weather, #memory, #mpris, #window,
@@ -49,16 +49,16 @@ opacity: 0.5;
 #custom-omarchy,
 #custom-screenrecording-indicator,
 #custom-update {
-background-color: @background;
-min-width: 12px;
+  background-color: @background;
+  min-width: 12px;
 
-border-radius: 10px;
-padding: 0 10px;
-margin: 0 0 0 5;
+  border-radius: 10px;
+  padding: 0 10px;
+  margin: 0 0 0 5;
 }
 
 #custom-expand-icon {
-margin-right: 7px;
+  margin-right: 7px;
 }
 
 tooltip {
@@ -66,14 +66,14 @@ tooltip {
 }
 
 #custom-update {
-font-size: 10px;
+  font-size: 10px;
 }
 
 #clock {
-background-color: @background;
+  background-color: @background;
 
-border-radius: 10px;
-padding: 0 10 0 10;
+  border-radius: 10px;
+  padding: 0 10 0 10;
 }
 
 .hidden {
@@ -81,41 +81,41 @@ padding: 0 10 0 10;
 }
 
 #custom-screenrecording-indicator {
-min-width: 12px;
-margin-left: 8.75px;
-font-size: 10px;
+  min-width: 12px;
+  margin-left: 8.75px;
+  font-size: 10px;
 
-padding: 0 11 0 10;
+  padding: 0 11 0 10;
 }
 
 #custom-screenrecording-indicator.active {
-color: #a55555;
+  color: #a55555;
 }
 
 
 /* EXTRA FIX! */
 #workspaces {
-background-color: @background;
-border-radius: 10px;
-margin-left: 5px;
-padding: 0 5 0 5;
+  background-color: @background;
+  border-radius: 10px;
+  margin-left: 5px;
+  padding: 0 5 0 5;
 }
 #tray-expander {
-background-color: @background;
-border-radius: 10px;
-padding: 0 0 0 10;
+  background-color: @background;
+  border-radius: 10px;
+  padding: 0 0 0 10;
 }
 #pulseaudio {
-padding: 0 15 0 10;
+  padding: 0 15 0 10;
 }
 #tray {
-margin: 0;
+  margin: 0; 
 }
 #mpris {
-margin-right: 5px;
+  margin-right: 5px;
 }
 #network.icon{
-padding: 0 13 0 9;
+  padding: 0 13 0 9;
 }
 
 tooltip {
