@@ -52,59 +52,8 @@ fi
 # Clone dotfiles repo
 # ----------------------
 if [ -d "$DOTFILES_DIR" ]; then
-    log "Dotfiles directory already exists at $DOTFILES_DIR"
-<<<<<<< HEAD
-    read -rp "Do you want to rename differing files with .bak and update with new repository? [y/N] " confirm
-    if [[ $confirm =~ ^[yY]$ ]]; then
-        log "Cloning dotfiles repository to a temporary directory..."
-        TEMP_DIR=$(mktemp -d)
-        git clone "$REPO_URL" "$TEMP_DIR"
-        
-        log "Checking for differing files in $DOTFILES_DIR..."
-        find "$TEMP_DIR" -type f -not -path "*/.git/*" | while read -r new_file; do
-            # Get the relative path of the file
-            relative_path="${new_file#$TEMP_DIR/}"
-            existing_file="$DOTFILES_DIR/$relative_path"
-            if [ -f "$existing_file" ]; then
-                # Compare file contents
-                if cmp -s "$existing_file" "$new_file"; then
-                    log "$relative_path is identical, skipping..."
-                else
-                    log "Renaming $existing_file to $existing_file.bak"
-                    mv "$existing_file" "$existing_file.bak"
-                    mkdir -p "$(dirname "$existing_file")"
-                    cp "$new_file" "$existing_file"
-                    log "Replaced $relative_path with new version"
-                fi
-            else
-                log "Copying new file $relative_path to $DOTFILES_DIR"
-                mkdir -p "$(dirname "$existing_file")"
-                cp "$new_file" "$existing_file"
-            fi
-        done
-        
-        log "Cleaning up temporary directory..."
-        rm -rf "$TEMP_DIR"
-        cd "$DOTFILES_DIR"
-    else
-        error "Operation aborted by user. Please remove or rename $DOTFILES_DIR manually to proceed."
-        exit 1
-    fi
-else
-    log "Cloning dotfiles repository..."
-    git clone "$REPO_URL" "$DOTFILES_DIR"
-    cd "$DOTFILES_DIR"
-fi
-
-=======
-    read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm
-    if [[ $confirm =~ ^[yY]$ ]]; then
         log "Deleting existing dotfiles folder..."
         rm -rf "$DOTFILES_DIR"
-    else
-        error "Aborting. Please remove or rename $DOTFILES_DIR manually."
-        exit 1
-    fi
 fi
 
 log "Cloning dotfiles repository..."
@@ -112,7 +61,6 @@ git clone "$REPO_URL" "$DOTFILES_DIR"
 cd "$DOTFILES_DIR"
 
 
->>>>>>> 8945c85 (delete old dotfile before git)
 # ----------------------
 # Helper functions
 # ----------------------
