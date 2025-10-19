@@ -90,7 +90,6 @@ is_aur_installed() {
 install_package() {
     local pkg="$1"
 
-    # Skip if already installed
     if is_official_installed "$pkg" || is_aur_installed "$pkg"; then
         log "$pkg is already installed"
         return
@@ -142,7 +141,11 @@ uninstall_package() {
 # Uninstall packages
 # ----------------------
 if [ -f "$UNINSTALL_PACKAGES_FILE" ]; then
-    mapfile -t UNINSTALL_PACKAGES < <(grep -vE '^\s*#|^\s*$' "$UNINSTALL_PACKAGES_FILE")
+    UNINSTALL_PACKAGES=()
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" =~ ^# ]] && continue
+        UNINSTALL_PACKAGES+=("$line")
+    done < "$UNINSTALL_PACKAGES_FILE"
 
     if [ "${#UNINSTALL_PACKAGES[@]}" -gt 0 ]; then
         log "The following packages will be uninstalled:"
@@ -171,7 +174,11 @@ if [ ! -f "$INSTALL_PACKAGES_FILE" ]; then
     exit 1
 fi
 
-mapfile -t INSTALL_PACKAGES < <(grep -vE '^\s*#|^\s*$' "$INSTALL_PACKAGES_FILE")
+INSTALL_PACKAGES=()
+while IFS= read -r line; do
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    INSTALL_PACKAGES+=("$line")
+done < "$INSTALL_PACKAGES_FILE"
 
 for pkg in "${INSTALL_PACKAGES[@]}"; do
     install_package "$pkg"
