@@ -42,15 +42,15 @@ else
 fi
 
 # ----------------------
-# Clone dotfiles repo (with handling for existing folder)
+# Clone dotfiles repo (handling existing folder)
 # ----------------------
 if [ -d "$DOTFILES_DIR" ]; then
     log "Dotfiles directory already exists at $DOTFILES_DIR"
     
-    # Check if running in an interactive shell
-    if [ -t 0 ]; then
-        # Interactive: prompt user
-        read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm
+    # Try to prompt the user via /dev/tty
+    if [ -t 1 ]; then
+        # Interactive: use /dev/tty for read
+        read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm </dev/tty
         if [[ $confirm =~ ^[yY]$ ]]; then
             log "Deleting existing dotfiles folder..."
             rm -rf "$DOTFILES_DIR"
@@ -68,6 +68,7 @@ fi
 log "Cloning dotfiles repository..."
 git clone "$REPO_URL" "$DOTFILES_DIR"
 cd "$DOTFILES_DIR"
+
 
 # ----------------------
 # Helper functions
