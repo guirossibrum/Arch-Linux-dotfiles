@@ -202,9 +202,10 @@ if ! command -v stow &> /dev/null; then
     exit 1
 fi
 
-## ----------------------
+# ----------------------
 # Deploy dotfiles using stow (using stow.txt)
 # ----------------------
+
 STOW_FILE="$DOTFILES_DIR/stow.txt"
 
 if [ ! -f "$STOW_FILE" ]; then
@@ -214,7 +215,7 @@ fi
 
 log "Preparing to stow dotfiles listed in stow.txt..."
 
-# Read packages from stow.txt
+# Read packages from stow.txt (ignore empty lines and comments)
 STOW_PACKAGES=()
 while IFS= read -r line; do
     [[ -z "$line" || "$line" =~ ^# ]] && continue
@@ -222,12 +223,12 @@ while IFS= read -r line; do
 done < "$STOW_FILE"
 
 if [ "${#STOW_PACKAGES[@]}" -eq 0 ]; then
-    error "No packages found in stow.txt"
+    error "No valid entries found in stow.txt"
     exit 1
 fi
 
-# --- helper: build target dirs controlled by each package ---
-build_target_dirs_for_pkg() {
+# --- helper: find all unique top-level target directories each package will affect ---
+find_targets_for_pkg() {
     local pkg="$1"
     local pkgdir="$DOTFILES_DIR/$pkg"
     local -n _out_array=$2
@@ -235,66 +236,46 @@ build_target_dirs_for_pkg() {
 
     while IFS= read -r -d $'\0' entry; do
         rel="${entry#$pkgdir/}"
-        [ -z "$rel" ] && continue
-        IFS='/' read -r -a parts <<< "$rel"
-        if [ "${#parts[@]}" -ge 2 ]; then
-            target="$HOME/${parts[0]}/${parts[1]}"
-        else
-            target="$HOME/${parts[0]}"
-        fi
-        target="${target%/}"
+        [[ -z "$rel" ]] && continue
+        top="${rel%%/*}"  # first part of the path, e.g., .config
+        [[ -z "$top" ]] && continue
+        target="$HOME/$top"
         local exists=0
         for t in "${_out_array[@]}"; do
-            [ "$t" = "$target" ] && { exists=1; break; }
+            [[ "$t" == "$target" ]] && { exists=1; break; }
         done
-        [ $exists -eq 0 ] && _out_array+=("$target")
+        [[ $exists -eq 0 ]] && _out_array+=("$target")
     done < <(find "$pkgdir" -mindepth 1 -print0 2>/dev/null)
-}
-
-# --- helper: prepare each target directory before stow ---
-prepare_target_dir() {
-    local target="$1"
-    if [ -L "$target" ] || [ -f "$target" ]; then
-        log "Removing existing file/symlink: $target"
-        rm -rf "$target"
-    fi
-    if [ -d "$target" ]; then
-        log "Cleaning contents of directory: $target"
-        rm -rf "${target:?}/"*
-        rm -rf "${target:?}/".[!.]* 2>/dev/null || true
-    else
-        log "Creating directory: $target"
-        mkdir -p "$target"
-    fi
 }
 
 # --- gather all target directories ---
 ALL_TARGETS=()
 for pkg in "${STOW_PACKAGES[@]}"; do
-    if [ ! -d "$DOTFILES_DIR/$pkg" ]; then
-        log "Warning: directory not found for $pkg (skipping)"
-        continue
-    fi
+    [ ! -d "$DOTFILES_DIR/$pkg" ] && { log "Skipping missing package: $pkg"; continue; }
     pkg_targets=()
-    build_target_dirs_for_pkg "$pkg" pkg_targets
+    find_targets_for_pkg "$pkg" pkg_targets
     for t in "${pkg_targets[@]}"; do
         skip=0
-        for ex in "${ALL_TARGETS[@]}"; do
-            [ "$ex" = "$t" ] && { skip=1; break; }
+        for existing in "${ALL_TARGETS[@]}"; do
+            [[ "$existing" == "$t" ]] && { skip=1; break; }
         done
-        [ $skip -eq 0 ] && ALL_TARGETS+=("$t")
+        [[ $skip -eq 0 ]] && ALL_TARGETS+=("$t")
     done
 done
 
-# --- confirm before deleting anything ---
+# --- back up existing directories before stowing ---
+BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
 if [ "${#ALL_TARGETS[@]}" -gt 0 ]; then
-    log "stow will take control of the following target directories:"
+    log "The following directories will be moved to backup before stowing:"
     printf '  %s\n' "${ALL_TARGETS[@]}"
+    log "Backup location: $BACKUP_DIR"
 
     if [ -t 1 ]; then
-        read -rp "This will remove or empty those directories. Proceed? [y/N] " confirm </dev/tty
+        read -rp "Proceed to move these directories to backup? [y/N] " confirm </dev/tty
         if [[ ! $confirm =~ ^[yY]$ ]]; then
-            error "User aborted stow operation."
+            error "User aborted."
             exit 1
         fi
     else
@@ -302,17 +283,35 @@ if [ "${#ALL_TARGETS[@]}" -gt 0 ]; then
     fi
 
     for t in "${ALL_TARGETS[@]}"; do
-        prepare_target_dir "$t"
+        if [ -e "$t" ]; then
+            rel_path="${t#$HOME/}"
+            dest_dir="$BACKUP_DIR/$rel_path"
+            mkdir -p "$(dirname "$dest_dir")"
+            log "Moving existing directory to backup: $t → $dest_dir"
+            mv "$t" "$dest_dir"
+        fi
     done
 fi
 
 # --- perform stow for each package ---
+log "Starting stow process..."
+
 for pkg in "${STOW_PACKAGES[@]}"; do
     if [ -d "$DOTFILES_DIR/$pkg" ]; then
-        log "Running stow for package: $pkg"
-        stow -d "$DOTFILES_DIR" -t "$HOME" "$pkg"
+        log "Stowing package: $pkg"
+        if stow -d "$DOTFILES_DIR" -t "$HOME" "$pkg" 2>&1; then
+            log "✅ Successfully stowed: $pkg"
+        else
+            error "❌ Failed to stow: $pkg"
+            echo "----- Error output for $pkg -----"
+            stow -d "$DOTFILES_DIR" -t "$HOME" "$pkg" 2>&1 || true
+            echo "--------------------------------"
+            continue
+        fi
+    else
+        log "⚠️  Warning: package folder '$pkg' does not exist in dotfiles repo."
     fi
 done
 
-log "Dotfiles stowed successfully."
+log "Dotfiles stowed successfully (errors above, if any, were skipped)."
 
