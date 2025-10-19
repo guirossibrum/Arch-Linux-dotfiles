@@ -1,0 +1,4 @@
+git
+bitwarden
+kate
+lmstudio
