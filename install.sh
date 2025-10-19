@@ -31,13 +31,6 @@ if ! command -v pacman &> /dev/null; then
     exit 1
 fi
 
-# Check if package is in official Arch Repositories
-is_official_repo() {
-    local pkg="$1"
-    # Check if package exists in official Arch repos
-    pacman -Si "$pkg" &> /dev/null
-}
-
 # Check for an AUR helper
 AUR_HELPER=""
 if command -v yay &> /dev/null; then
@@ -49,26 +42,56 @@ else
 fi
 
 # ----------------------
-# Clone dotfiles repo
+# Clone dotfiles repo (with confirmation if it exists)
 # ----------------------
 if [ -d "$DOTFILES_DIR" ]; then
+    log "Dotfiles directory already exists at $DOTFILES_DIR"
+    read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm
+    if [[ $confirm =~ ^[yY]$ ]]; then
         log "Deleting existing dotfiles folder..."
         rm -rf "$DOTFILES_DIR"
+    else
+        error "Aborting. Please remove or rename $DOTFILES_DIR manually."
+        exit 1
+    fi
 fi
 
 log "Cloning dotfiles repository..."
 git clone "$REPO_URL" "$DOTFILES_DIR"
 cd "$DOTFILES_DIR"
 
-
 # ----------------------
 # Helper functions
 # ----------------------
+
+# Check if package exists in official repo
+is_official_repo() {
+    local pkg="$1"
+    pacman -Si "$pkg" &> /dev/null
+}
+
+# Check if package is installed from official repo
+is_official_installed() {
+    local pkg="$1"
+    pacman -Qi "$pkg" &> /dev/null
+}
+
+# Check if package is installed via AUR helper
+is_aur_installed() {
+    local pkg="$1"
+    if [ -n "$AUR_HELPER" ]; then
+        "$AUR_HELPER" -Q "$pkg" &> /dev/null
+    else
+        return 1
+    fi
+}
+
+# Install package (official repo first, then AUR)
 install_package() {
     local pkg="$1"
 
     # Skip if already installed
-    if pacman -Qs "$pkg" &> /dev/null; then
+    if is_official_installed "$pkg" || is_aur_installed "$pkg"; then
         log "$pkg is already installed"
         return
     fi
@@ -92,33 +115,33 @@ install_package() {
     fi
 }
 
+# Uninstall package (official repo or AUR)
 uninstall_package() {
     local pkg="$1"
 
-    if pacman -Qs "$pkg" &> /dev/null; then
-        log "Uninstalling $pkg with pacman..."
+    if is_official_installed "$pkg"; then
+        log "Uninstalling $pkg from official repositories..."
         if sudo pacman -Rns --noconfirm "$pkg"; then
-            log "$pkg uninstalled via pacman"
-            return
+            log "$pkg successfully uninstalled via pacman"
+        else
+            error "Failed to uninstall $pkg via pacman"
         fi
-    fi
-
-    if [ -n "$AUR_HELPER" ]; then
-        log "Trying to uninstall $pkg via $AUR_HELPER..."
+    elif is_aur_installed "$pkg"; then
+        log "Uninstalling $pkg from AUR via $AUR_HELPER..."
         if "$AUR_HELPER" -Rns --noconfirm "$pkg"; then
-            log "$pkg uninstalled via $AUR_HELPER"
-            return
+            log "$pkg successfully uninstalled via $AUR_HELPER"
+        else
+            error "Failed to uninstall $pkg via $AUR_HELPER"
         fi
+    else
+        log "$pkg is not installed, skipping"
     fi
-
-    error "Failed to uninstall $pkg"
 }
 
 # ----------------------
 # Uninstall packages
 # ----------------------
 if [ -f "$UNINSTALL_PACKAGES_FILE" ]; then
-    # Read packages, skip comments and empty lines
     mapfile -t UNINSTALL_PACKAGES < <(grep -vE '^\s*#|^\s*$' "$UNINSTALL_PACKAGES_FILE")
 
     if [ "${#UNINSTALL_PACKAGES[@]}" -gt 0 ]; then
@@ -168,11 +191,9 @@ fi
 log "Installing dotfiles using stow..."
 
 # Manual option: specify directories explicitly
-stow hyprland
-stow kitty
 stow starship
-stow screenlayout
 stow waybar
+stow hyprland
 
 # Automated option (iterate over each folder in dotfiles)
 # Uncomment to test
