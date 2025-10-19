@@ -42,17 +42,26 @@ else
 fi
 
 # ----------------------
-# Clone dotfiles repo (with confirmation if it exists)
+# Clone dotfiles repo (with handling for existing folder)
 # ----------------------
 if [ -d "$DOTFILES_DIR" ]; then
     log "Dotfiles directory already exists at $DOTFILES_DIR"
-    read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm
-    if [[ $confirm =~ ^[yY]$ ]]; then
-        log "Deleting existing dotfiles folder..."
-        rm -rf "$DOTFILES_DIR"
+    
+    # Check if running in an interactive shell
+    if [ -t 0 ]; then
+        # Interactive: prompt user
+        read -rp "Do you want to delete the existing dotfiles folder and continue? [y/N] " confirm
+        if [[ $confirm =~ ^[yY]$ ]]; then
+            log "Deleting existing dotfiles folder..."
+            rm -rf "$DOTFILES_DIR"
+        else
+            error "Aborting. Please remove or rename $DOTFILES_DIR manually."
+            exit 1
+        fi
     else
-        error "Aborting. Please remove or rename $DOTFILES_DIR manually."
-        exit 1
+        # Non-interactive: automatically delete
+        log "Non-interactive shell detected. Deleting existing dotfiles folder automatically..."
+        rm -rf "$DOTFILES_DIR"
     fi
 fi
 
