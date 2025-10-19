@@ -202,20 +202,117 @@ if ! command -v stow &> /dev/null; then
     exit 1
 fi
 
+## ----------------------
+# Deploy dotfiles using stow (using stow.txt)
 # ----------------------
-# Deploy dotfiles using stow
-# ----------------------
-log "Installing dotfiles using stow..."
+STOW_FILE="$DOTFILES_DIR/stow.txt"
 
-# Manual option: specify directories explicitly
-stow starship
-stow waybar
-stow hyprland
+if [ ! -f "$STOW_FILE" ]; then
+    error "stow.txt not found in $DOTFILES_DIR"
+    exit 1
+fi
 
-# Automated option (iterate over each folder in dotfiles)
-# Uncomment to test
-# for dir in */ ; do
-#     stow "${dir%/}"
-# done
+log "Preparing to stow dotfiles listed in stow.txt..."
 
-log "Dotfiles installation completed successfully!"
+# Read packages from stow.txt
+STOW_PACKAGES=()
+while IFS= read -r line; do
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    STOW_PACKAGES+=("$line")
+done < "$STOW_FILE"
+
+if [ "${#STOW_PACKAGES[@]}" -eq 0 ]; then
+    error "No packages found in stow.txt"
+    exit 1
+fi
+
+# --- helper: build target dirs controlled by each package ---
+build_target_dirs_for_pkg() {
+    local pkg="$1"
+    local pkgdir="$DOTFILES_DIR/$pkg"
+    local -n _out_array=$2
+    _out_array=()
+
+    while IFS= read -r -d $'\0' entry; do
+        rel="${entry#$pkgdir/}"
+        [ -z "$rel" ] && continue
+        IFS='/' read -r -a parts <<< "$rel"
+        if [ "${#parts[@]}" -ge 2 ]; then
+            target="$HOME/${parts[0]}/${parts[1]}"
+        else
+            target="$HOME/${parts[0]}"
+        fi
+        target="${target%/}"
+        local exists=0
+        for t in "${_out_array[@]}"; do
+            [ "$t" = "$target" ] && { exists=1; break; }
+        done
+        [ $exists -eq 0 ] && _out_array+=("$target")
+    done < <(find "$pkgdir" -mindepth 1 -print0 2>/dev/null)
+}
+
+# --- helper: prepare each target directory before stow ---
+prepare_target_dir() {
+    local target="$1"
+    if [ -L "$target" ] || [ -f "$target" ]; then
+        log "Removing existing file/symlink: $target"
+        rm -rf "$target"
+    fi
+    if [ -d "$target" ]; then
+        log "Cleaning contents of directory: $target"
+        rm -rf "${target:?}/"*
+        rm -rf "${target:?}/".[!.]* 2>/dev/null || true
+    else
+        log "Creating directory: $target"
+        mkdir -p "$target"
+    fi
+}
+
+# --- gather all target directories ---
+ALL_TARGETS=()
+for pkg in "${STOW_PACKAGES[@]}"; do
+    if [ ! -d "$DOTFILES_DIR/$pkg" ]; then
+        log "Warning: directory not found for $pkg (skipping)"
+        continue
+    fi
+    pkg_targets=()
+    build_target_dirs_for_pkg "$pkg" pkg_targets
+    for t in "${pkg_targets[@]}"; do
+        skip=0
+        for ex in "${ALL_TARGETS[@]}"; do
+            [ "$ex" = "$t" ] && { skip=1; break; }
+        done
+        [ $skip -eq 0 ] && ALL_TARGETS+=("$t")
+    done
+done
+
+# --- confirm before deleting anything ---
+if [ "${#ALL_TARGETS[@]}" -gt 0 ]; then
+    log "stow will take control of the following target directories:"
+    printf '  %s\n' "${ALL_TARGETS[@]}"
+
+    if [ -t 1 ]; then
+        read -rp "This will remove or empty those directories. Proceed? [y/N] " confirm </dev/tty
+        if [[ ! $confirm =~ ^[yY]$ ]]; then
+            error "User aborted stow operation."
+            exit 1
+        fi
+    else
+        log "Non-interactive shell detected — proceeding automatically."
+    fi
+
+    for t in "${ALL_TARGETS[@]}"; do
+        prepare_target_dir "$t"
+    done
+fi
+
+# --- perform stow for each package ---
+for pkg in "${STOW_PACKAGES[@]}"; do
+    if [ -d "$DOTFILES_DIR/$pkg" ]; then
+        log "Running stow for package: $pkg"
+        stow -d "$DOTFILES_DIR" -t "$HOME" "$pkg"
+    fi
+done
+
+log "Dotfiles stowed successfully."
+
