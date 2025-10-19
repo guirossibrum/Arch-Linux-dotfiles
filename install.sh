@@ -215,6 +215,13 @@ fi
 
 log "Preparing to stow dotfiles listed in stow.txt..."
 
+set +e  # disable immediate exit on error for debugging
+echo "DEBUG: STOW_FILE=$STOW_FILE"
+echo "DEBUG: DOTFILES_DIR=$DOTFILES_DIR"
+echo "DEBUG: Contents of stow.txt:"
+cat "$STOW_FILE"
+
+
 # Read packages from stow.txt (ignore empty lines and comments)
 STOW_PACKAGES=()
 while IFS= read -r line; do
