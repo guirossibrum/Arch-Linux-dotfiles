@@ -39,6 +39,13 @@ min-width: 9px;
 opacity: 0.5;
 }
 
+#workspaces button.active {
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 0.7px solid @foreground;
+  margin-bottom: 2px;
+}
+
 #backlight, #custom-weather, #memory, #mpris, #window,
 #tray,
 #cpu,
@@ -98,7 +105,7 @@ color: #a55555;
 background-color: @background;
 border-radius: 10px;
 margin-left: 5px;
-padding: 0 5 0 5;
+padding: 0 10 0 10;
 }
 #tray-expander {
 background-color: @background;
