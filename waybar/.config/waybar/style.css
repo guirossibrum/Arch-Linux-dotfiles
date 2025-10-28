@@ -1,9 +1,8 @@
 @import "../omarchy/current/theme/waybar.css";
+@define-color workspacesbackground2 #312E45;
 
 * {
-  /* background-color: @background; */
   color: @foreground;
-
   border: none;
   border-radius: 0;
   min-height: 0;
@@ -40,10 +39,12 @@ opacity: 0.5;
 }
 
 #workspaces button.active {
+
   padding-left: 16px;
   padding-right: 16px;
-  border-bottom: 0.7px solid @foreground;
-  margin-bottom: 2px;
+  border-radius: 8px;
+  margin: 4px -1px;
+  background-color: @workspacesbackground2;
 }
 
 #backlight, #custom-weather, #memory, #mpris, #window,
