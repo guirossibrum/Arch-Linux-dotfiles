@@ -62,7 +62,7 @@
 //  CENTER MODULES
 
   "clock": {
-    "format": "{:%I:%M %p}",
+    "format": "{:L%A %I:%M %p}",
     "format-alt": "{:%A %d/%m/%Y}",
     "tooltip-format": "<span>{calendar}</span>",
     "calendar": {
